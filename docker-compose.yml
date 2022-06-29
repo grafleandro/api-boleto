@@ -1,0 +1,18 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql
+    container_name: "mysql-api-boleto"
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=lms663
+      - MYSQL_DATABASE=api_boleto
+      - MYSQL_USER=leandro
+      - MYSQL_PASSWORD=lms663
+
+# networks:
+#   synext:
+#     driver: bridge
