@@ -1,20 +1,26 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as moment from "moment";
+import { returnPadrao } from './boleto.module';
 
 @Injectable()
 export class bancoPadraoService {
-    async checkBoletoBB(codigoBarra: number): Promise<any> {
-        let CheckDvBoleto = this.calcDvBoleto(codigoBarra)
+    async checkBoletoBB(codigoBarra: number): Promise<returnPadrao> {
+        let CheckDvBoleto = await this.calcDvBoleto(codigoBarra)
         let CheckDvCampo = await this.calcDvCampo(codigoBarra)
 
         if (CheckDvBoleto && CheckDvCampo) {
-            var valor = this.getValor(codigoBarra)
-            var vencimento = this.getVencimento(codigoBarra)
+            var valor = await this.getValor(codigoBarra)
+            var vencimento = await this.getVencimento(codigoBarra)
             return {
-                barCode: codigoBarra,
+                barCode: codigoBarra.toString(),
                 amount: valor,
                 expirationDate: vencimento
             }
+        } else {
+            throw new HttpException({
+                error: true,
+                message: `A linha digitavel informada não atende aos padrões exigidos`
+            }, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -39,6 +45,8 @@ export class bancoPadraoService {
         let modCodigo = sumCodigo % 11
 
         let DvBoleto = 11 - modCodigo
+
+        console.log('DV Boleto', DvBoleto)
 
         if (DvBoleto == 0) DvBoleto = 1
 
@@ -137,12 +145,9 @@ export class bancoPadraoService {
         return false
     }
 
-    //DUVIDA NO CASO DE VALORES ALTOS ONDE EH RETIRADO O FATOR VENCIMENTO
     getValor(codigoBarra: number): number {
         let campoValor = parseInt(codigoBarra.toString().substring(37))
         let valor = parseFloat(campoValor.toString().substring(0, (campoValor.toString().length - 2)) + '.' + campoValor.toString().substring(campoValor.toString().length - 2))
-        console.log(valor)
-
         return valor
     }
 
@@ -151,10 +156,6 @@ export class bancoPadraoService {
 
         let today = moment().format("YYYY-MM-DD")
         let dateBase = moment("2000-07-03")
-
-        // if (moment(today.toString()).isAfter('23-02-2025')) {
-        //     dateBase = moment("2025-02-23", "YYYY-MM-DD")
-        // }
 
         let dateVencimento = dateBase.add(fatorVencimento - 1000, 'days').format("YYYY-MM-DD")
 

@@ -29,3 +29,11 @@ export interface getBank {
     message?: string,
     type?: string
 }
+
+export interface returnPadrao {
+    barCode: string,
+    amount: number,
+    expirationDate: string,
+    error?: boolean,
+    message?: string,
+}

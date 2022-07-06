@@ -1,14 +1,35 @@
-import { ConsoleLogger, Injectable } from '@nestjs/common';
+import { ConsoleLogger, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { returnPadrao } from './boleto.module';
 
 
 @Injectable()
 export class boletoConvenioService {
-    async processBoletoConvenio(codigoBarra: number): Promise<any> {
+    async processBoletoConvenio(codigoBarra: number): Promise<returnPadrao> {
         let codigo = await this.DacRemove(codigoBarra)
-        console.log('result', await this.calcDvBoletoModTen(codigo))
-        console.log('result DAC', await this.checkDacBoletoModTen(codigoBarra.toString()))
+        let checkDvBoleto = await this.calcDvBoletoModTen(codigo)
+        let checkDacBoleto = await this.checkDacBoletoModTen(codigoBarra.toString())
 
-        return
+        if (checkDvBoleto && checkDacBoleto) {
+            var valor = await this.getValor(codigo)
+            return {
+                barCode: codigoBarra.toString(),
+                amount: valor,
+                expirationDate: null
+            }
+        } else {
+            throw new HttpException({
+                error: true,
+                message: `A linha digitavel informada não atende aos padrões exigidos`
+            }, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    getValor(codigoBarra: number): number {
+        let campoValor = parseInt(codigoBarra.toString().substring(4, 15))
+        console.log(codigoBarra.toString().substring(4, 15))
+        let valor = parseFloat(campoValor.toString().substring(0, (campoValor.toString().length - 2)) + '.' + campoValor.toString().substring(campoValor.toString().length - 2))
+
+        return valor
     }
 
     async DacRemove(codigoBarra: number): Promise<any> {

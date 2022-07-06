@@ -1,32 +1,32 @@
 
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import axios from 'axios';
 import { boletoConvenioService } from './boleto-convenio.service';
 import { bancoPadraoService } from './boleto-padrao.service';
-import { getBank } from './boleto.module';
+import { getBank, returnPadrao } from './boleto.module';
 
 @Injectable()
 export class BoletoService {
 
     constructor(private bancoPadrao: bancoPadraoService, private boletoConvenio: boletoConvenioService) { }
 
-    async codeProcessing(codigoBarra: number): Promise<any> {
-        console.log('Codigo de barra recebido: \n', codigoBarra)
-        //funcao para capturar o codigo do banco e demais informações
+    async codeProcessing(codigoBarra: number): Promise<returnPadrao> {
+
+        //Verifica se o banco existe no caso de boleto bancarios
         if (codigoBarra.toString().length == 47) {
-            var bank = await this.getBank(codigoBarra)
+            await this.getBank(codigoBarra)
         }
 
 
-        // tratando caso o codigo do banco nao exist
-        if (bank && bank.error) {
-            return bank
-        }
         console.log(codigoBarra.toString().length)
 
         switch (codigoBarra.toString().length) {
             case 47: return this.bancoPadrao.checkBoletoBB(codigoBarra)
             case 48: return await this.boletoConvenio.processBoletoConvenio(codigoBarra)
+            default: throw new HttpException({
+                error: true,
+                message: `Tamanho inválido! A linha digitavel informada possui ${codigoBarra.toString().length} digitos, o tamanho correto é 47 ou 48 digitos`
+            }, HttpStatus.BAD_REQUEST);
         }
 
     }
@@ -44,16 +44,13 @@ export class BoletoService {
 
         let bank = await axios(config)
             .then((response) => {
-                console.log('Retorno API com dados do Banco => ', JSON.stringify(response.data));
+                // console.log('Retorno API com dados do Banco => ', JSON.stringify(response.data));
                 return response.data
             })
             .catch((error) => {
-                console.log(error);
-
-                return {
-                    erro: true,
-                    message: error.message
-                }
+                throw new HttpException({
+                    ...error.response.data,
+                }, error.response.status);
             });
 
         return bank

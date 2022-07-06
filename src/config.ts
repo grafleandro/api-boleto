@@ -7,7 +7,7 @@ export const config = () => ({
         port: 3306,
         username: 'root',
         password: 'lms663',
-        database: 'livraria',
+        database: process.env.DATABASE_NAME,
         entities: [
             __dirname + '/../**/*.entity{.ts,.js}',
         ],
